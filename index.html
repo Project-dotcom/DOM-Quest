@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maze Quest: DOM JavaScript</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Quicksand:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0D0A1F;--wall:#241C4A;--wall2:#3A2D74;--dot:#8A7CFF;--candy:#FFD166;--candy2:#FFB84D;--pink:#FF3D7A;--pd:#FF0F5B;--ghost:#8A7CFF;--gd:#6656D6;--mint:#3DFFC0;--coral:#FF5A6E;--text:#EDE6FF;--muted:#8579B8;--fc:'Press Start 2P',cursive;--fb:'Quicksand',sans-serif;--fm:'JetBrains Mono',monospace}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:radial-gradient(circle at 15% 10%,rgba(138,124,255,.12),transparent 45%),radial-gradient(circle at 85% 90%,rgba(255,61,122,.12),transparent 45%),var(--bg);color:var(--text);font-family:var(--fb);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:100;background:repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px);opacity:.5}
+.wrap{max-width:760px;margin:0 auto;padding:22px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap}
+.logo{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#FFF6D6,var(--candy) 55%,var(--candy2));box-shadow:0 0 14px rgba(255,209,102,.65);clip-path:polygon(100% 80%,38% 50%,100% 20%,100% 0,0 0,0 100%,100% 100%)}
+.hud{display:flex;gap:8px;align-items:center}
+.score,.timer{font-family:var(--fc);font-size:11px;color:var(--mint);background:#150F30;border:1px solid var(--wall2);border-radius:8px;padding:6px 12px;box-shadow:0 0 10px rgba(61,255,192,.25)}
+.timer{color:var(--pink);display:none}
+.startScreen{display:flex;justify-content:center;padding:34px 10px;background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:22px 22px}
+.startCard{max-width:420px;width:100%;text-align:center}
+.pacHero{width:70px;height:70px;margin:0 auto 18px;filter:drop-shadow(0 0 16px rgba(255,209,102,.55))}
+.levelList{display:flex;flex-direction:column;gap:16px}
+.levelBtn{font-family:var(--fc);font-size:11px;border:2px solid var(--pd);cursor:pointer;padding:16px 18px;width:100%;background:linear-gradient(180deg,#1B1440,#120D30);color:var(--text);box-shadow:0 4px 0 var(--pd),0 0 18px rgba(255,61,122,.25);display:flex;align-items:center;gap:14px;text-align:left;border-radius:10px;line-height:1.6}
+.badge3d{width:30px;height:30px;flex:0 0 auto;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:#0D0A1F;background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.8),var(--bc) 62%);box-shadow:0 0 10px var(--bc)}
+.menuBtn{font-family:var(--fc);font-size:10px;border:1px solid var(--wall2);cursor:pointer;padding:8px 14px;border-radius:8px;background:#150F30;color:var(--mint)}
+.maze{position:relative;display:grid;grid-template-columns:repeat(13,1fr);grid-template-rows:repeat(9,1fr);aspect-ratio:13/9;background:var(--bg);border-radius:14px;border:3px solid var(--ghost);overflow:hidden;box-shadow:0 0 24px rgba(138,124,255,.35),0 10px 24px rgba(0,0,0,.5)}
+.cell{position:relative}
+.cell.wall{background:linear-gradient(160deg,var(--wall2),var(--wall));box-shadow:inset 0 0 0 1px rgba(138,124,255,.35)}
+.cell.path.dot::before{content:'';position:absolute;top:50%;left:50%;width:18%;height:18%;min-width:3px;min-height:3px;background:var(--dot);border-radius:50%;transform:translate(-50%,-50%)}
+.cell.mission .marker{position:absolute;top:20%;left:20%;width:60%;height:60%;border-radius:38%;background:linear-gradient(155deg,var(--candy),var(--candy2));animation:pulse 1.3s ease-in-out infinite}
+.cell.mission.cleared .marker{background:#EAE0F7;animation:none}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(.82)}}
+@keyframes bump{45%{transform:scale(1.35)}}.bump{animation:bump .4s ease}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}.shake{animation:shake .4s ease}
+.confetti{position:fixed;top:-16px;width:9px;height:13px;border-radius:3px;z-index:70;pointer-events:none;animation:cf linear forwards}
+@keyframes cf{to{transform:translateY(110vh) rotate(600deg)}}
+.player,.enemy{position:absolute;width:6.6%;aspect-ratio:1;transition:left .16s linear,top .16s linear,transform .16s linear;z-index:5}
+.enemy{transition:left .3s linear,top .3s linear;z-index:4}
+.pacBody{width:100%;height:100%;border-radius:50%;position:relative;background:radial-gradient(circle at 35% 28%,#FFF6D6,var(--candy) 55%,var(--candy2));animation:chomp .32s ease-in-out infinite}
+.pacBody::after{content:'';position:absolute;top:20%;left:50%;width:12%;height:12%;background:#1A1330;border-radius:50%}
+@keyframes chomp{0%,100%{clip-path:polygon(100% 50%,100% 50%,100% 50%,100% 0,0 0,0 100%,100% 100%)}50%{clip-path:polygon(100% 80%,38% 50%,100% 20%,100% 0,0 0,0 100%,100% 100%)}}
+.ghostBody{position:absolute;inset:0;border-radius:50% 50% 8% 8%/60% 60% 8% 8%;background:linear-gradient(160deg,var(--ghost),var(--gd))}
+.enemy .eye{position:absolute;top:30%;width:22%;height:22%;background:#fff;border-radius:50%}
+.enemy .eye::after{content:'';position:absolute;top:26%;left:26%;width:46%;height:46%;background:#1A1330;border-radius:50%}
+.eye.l{left:16%}.eye.r{right:16%}
+.dpad{display:grid;grid-template-columns:52px 52px 52px;grid-template-rows:52px 52px 52px;gap:6px;justify-content:center;margin:22px auto 0}
+.dpad button{background:linear-gradient(180deg,#241C4A,#150F30);border:1px solid var(--ghost);color:var(--candy);border-radius:10px;font-size:15px;cursor:pointer;box-shadow:0 3px 0 var(--gd)}
+.up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:2}.right{grid-column:3;grid-row:2}.down{grid-column:2;grid-row:3}
+.flash{position:fixed;top:16px;left:50%;transform:translate(-50%,-140%);background:#150F30;color:var(--candy);font-family:var(--fc);font-size:11px;padding:12px 20px;border-radius:10px;border:1px solid var(--pd);transition:transform .35s;z-index:60;text-align:center}
+.flash.show{transform:translate(-50%,0)}
+.overlay{position:fixed;inset:0;background:rgba(5,3,16,.78);display:flex;align-items:center;justify-content:center;padding:18px;z-index:50}
+.hidden{display:none!important}
+.panel{background:linear-gradient(180deg,#1B1440,#100B29);border-radius:16px;padding:28px 24px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;position:relative;border:2px solid var(--ghost);box-shadow:0 0 30px rgba(138,124,255,.35)}
+.lesson{font-size:15px;line-height:1.7;margin-bottom:14px;font-weight:500}.lesson b{color:var(--candy)}
+pre{background:#0A0718;border:1px solid var(--wall2);border-radius:10px;padding:13px 16px;font-size:12.5px;font-family:var(--fm);line-height:1.6;color:#D9C9F0;margin:0 0 16px;overflow-x:auto;white-space:pre-wrap}
+.task{font-size:14px;margin-bottom:10px;line-height:1.6;font-weight:600}
+.task code{font-family:var(--fm);background:#241C4A;color:var(--candy);border-radius:6px;padding:1px 6px;font-size:12.5px}
+.noteBox{background:#0F0B26;border-left:4px solid var(--mint);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.6;margin-bottom:12px}.noteBox b{color:var(--candy)}
+.hintBtn{font-family:var(--fc);font-size:10.5px;border:none;cursor:pointer;background:none;color:var(--candy);text-decoration:underline;padding:0 0 10px}
+.hintBox{background:#241C08;border:1px solid #4a3a10;border-radius:8px;padding:9px 12px;font-size:13px;line-height:1.6;margin:-2px 0 12px}
+.outputBox{background:#050310;color:var(--mint);font-family:'Courier New',monospace;font-size:12.5px;line-height:1.6;border-radius:8px;border:1px solid var(--wall2);padding:10px 12px;margin:8px 0 0;white-space:pre-wrap;word-break:break-word;max-height:180px;overflow-y:auto}
+textarea{width:100%;min-height:120px;background:#0A0718;border:2px solid var(--wall2);color:var(--mint);font-family:var(--fm);font-size:13px;line-height:1.6;border-radius:10px;padding:12px 14px;resize:vertical}
+textarea:focus{outline:none;border-color:var(--pink)}
+.row{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap}
+button.run{background:linear-gradient(180deg,var(--pink),var(--pd));color:#fff;border:1px solid #ff8bad;font-family:var(--fc);font-size:11px;padding:12px 20px;border-radius:8px;cursor:pointer;box-shadow:0 3px 0 #8f0038}
+button.run:disabled{opacity:.55}
+.status{font-family:var(--fc);font-size:11px;min-height:16px}.ok{color:var(--mint)}.bad{color:var(--coral)}
+.closeX{position:absolute;top:14px;right:18px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer}
+.quizOpts{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.quizOpts button{font-family:var(--fb);font-weight:600;font-size:13.5px;text-align:left;cursor:pointer;border:2px solid var(--wall2);background:#1B1440;color:var(--text);border-radius:12px;padding:10px 14px}
+.quizOpts .correct{background:var(--mint);color:#0D0A1F;border-color:var(--mint)}.quizOpts .wrong{background:var(--coral);color:#fff;border-color:var(--coral)}
+.quizMsg{font-family:var(--fc);font-size:11px;min-height:16px;margin-bottom:10px}
+.finale .big{font-family:var(--fc);font-size:16px;color:var(--candy);margin-bottom:14px;text-align:center}
+.finale .sc{font-family:var(--fc);font-size:11px;text-align:center;margin-bottom:22px;color:var(--mint)}
+.finale button{display:block;margin:0 auto;background:linear-gradient(180deg,var(--mint),#1e9e77);color:#06251a;border:1px solid #7dffd4;font-family:var(--fc);font-size:11px;padding:12px 22px;border-radius:8px;cursor:pointer}
+</style></head><body>
+<div class="wrap">
+<header><div class="logo"></div>
+<div class="hud" id="hud" style="display:none"><button class="menuBtn" id="menuBtn">Ganti Level</button><div class="timer" id="timer"></div><div class="score" id="score"></div><div class="score" id="points"></div></div></header>
+<div class="startScreen" id="startScreen"><div class="startCard"><div class="pacHero"><div class="pacBody"></div></div><div class="levelList" id="levelList"></div></div></div>
+<div id="game" style="display:none"><div class="maze" id="maze"></div>
+<div class="dpad"><button class="up" data-dr="-1" data-dc="0">&#9650;</button><button class="left" data-dr="0" data-dc="-1">&#9664;</button><button class="right" data-dr="0" data-dc="1">&#9654;</button><button class="down" data-dr="1" data-dc="0">&#9660;</button></div></div>
+</div>
+<div class="flash" id="flash"></div>
+<div class="overlay hidden" id="overlay"><div class="panel" id="panel"></div></div>
+<script>
+const ROWS=9,COLS=13,START=[4,1];
+const PILLARS=[[2,3],[2,7],[2,10],[4,2],[4,5],[4,9],[6,3],[6,7],[6,10]];
+const POS=[[1,2],[1,10],[5,10],[7,4]];
+const HTML0='<h1 id="judul">Halo</h1><p class="catatan">A</p><p class="catatan">B</p><ul id="daftar"><li>Satu</li><li>Dua</li></ul><button id="tombol">Klik</button><input id="isian">';
+const Q=(q,o)=>({q,options:o,answer:0});
+const q1=(b,s)=>b.querySelector(s),qa=(b,s)=>[...b.querySelectorAll(s)];
+const CATS=[
+{name:'Level 1: Seleksi Elemen',ms:[
+{lesson:`Halaman webmu punya papan nama. <b>getElementById</b> mengambil satu elemen lewat id-nya. Kalau id tidak ada, hasilnya <b>null</b>.`,code:`document.getElementById('judul')`,
+ quiz:Q('Apa hasil getElementById kalau id-nya tidak ada di halaman?',['null','undefined','Error langsung','Elemen kosong']),v:{
+ easy:{task:`Langkah: ambil <code>#judul</code> pakai getElementById, lalu ganti <code>textContent</code>-nya jadi teks bebas.`,hint:`document.getElementById('judul').textContent = 'teks barumu';`,re:/getElementById/,ok:b=>q1(b,'#judul').textContent!=='Halo'},
+ medium:{task:`Simpan elemen <code>#judul</code> ke variabel <code>judul</code>, ganti teksnya, lalu cetak <code>judul.textContent</code> lewat console.log.`,hint:`const judul = document.getElementById('judul'); judul.textContent = '...'; console.log(judul.textContent);`,note:`Menyimpan elemen ke variabel membuat kode lebih rapi dan tidak perlu menyeleksi berulang.`,re:/(const|let|var)\s+judul\s*=\s*document\.getElementById/,ok:(b,l)=>q1(b,'#judul').textContent!=='Halo'&&l.trim()===q1(b,'#judul').textContent},
+ hard:{task:`Ambil teks lama <code>#judul</code>, jadikan huruf besar pakai <code>toUpperCase()</code>, tambahkan <code>' DOM'</code> di belakangnya, lalu simpan kembali.`,hint:`el.textContent = el.textContent.toUpperCase() + ' DOM';`,note:`textContent bisa dibaca sekaligus ditulis ulang, jadi teks lama bisa diolah dulu.`,re:/toUpperCase/,ok:b=>q1(b,'#judul').textContent==='HALO DOM'}}},
+{lesson:`<b>querySelector</b> memakai selector CSS, tapi hanya mengambil elemen <b>pertama</b> yang cocok.`,code:`document.querySelector('.catatan')`,
+ quiz:Q('Kalau ada tiga elemen cocok, querySelector mengembalikan...',['Yang pertama saja','Semuanya','Yang terakhir','Array kosong']),v:{
+ easy:{task:`Ubah teks paragraf <code>.catatan</code> pertama saja jadi teks bebas. Paragraf kedua harus tetap "B".`,hint:`document.querySelector('.catatan').textContent = '...';`,re:/querySelector\(/,ok:b=>{const p=qa(b,'.catatan');return p[0].textContent!=='A'&&p[1].textContent==='B'}},
+ medium:{task:`Pakai selector gabungan <code>'#daftar li'</code> untuk mengubah teks <code>li</code> pertama jadi teks bebas. Yang kedua tetap "Dua".`,hint:`document.querySelector('#daftar li').textContent = '...';`,note:`Selector CSS gabungan seperti '#daftar li' bisa dipakai langsung di querySelector.`,re:/querySelector\(\s*['"]#daftar li/,ok:b=>{const l=qa(b,'#daftar li');return l[0].textContent!=='Satu'&&l[1].textContent==='Dua'}},
+ hard:{task:`Ambil <code>li</code> yang <b>terakhir</b> di <code>#daftar</code> pakai <code>:last-child</code>, ubah teksnya. Yang pertama tetap "Satu".`,hint:`document.querySelector('#daftar li:last-child').textContent = '...';`,note:`Pseudo-class CSS seperti :last-child dan :nth-child juga jalan di querySelector.`,re:/last-child|nth-child/,ok:b=>{const l=qa(b,'#daftar li');return l[1].textContent!=='Dua'&&l[0].textContent==='Satu'}}}},
+{lesson:`<b>querySelectorAll</b> mengambil semua elemen yang cocok dalam bentuk NodeList, jadi bisa langsung di-<b>forEach</b>.`,code:`document.querySelectorAll('.catatan').forEach(p => {...})`,
+ quiz:Q('NodeList dari querySelectorAll bisa langsung dipakai dengan...',['forEach','append saja','getElementById','push']),v:{
+ easy:{task:`Beri class <code>aktif</code> ke semua <code>.catatan</code> pakai querySelectorAll + forEach + classList.add.`,hint:`document.querySelectorAll('.catatan').forEach(p => p.classList.add('aktif'));`,re:/querySelectorAll[\s\S]*forEach/,ok:b=>qa(b,'.catatan').every(p=>p.classList.contains('aktif'))},
+ medium:{task:`Ubah teks tiap <code>.catatan</code> jadi "Catatan 1", "Catatan 2" pakai forEach dengan parameter index.`,hint:`.forEach((p, i) => { p.textContent = 'Catatan ' + (i + 1); });`,note:`forEach punya parameter kedua berupa nomor urut (index), dimulai dari 0.`,re:/forEach\(\s*\(?\s*\w+\s*,\s*\w+/,ok:b=>{const p=qa(b,'.catatan');return p[0].textContent==='Catatan 1'&&p[1].textContent==='Catatan 2'}},
+ hard:{task:`Ubah teks tiap <code>li</code> di <code>#daftar</code> jadi "Item 1", "Item 2" pakai querySelectorAll dan index.`,hint:`document.querySelectorAll('#daftar li').forEach((li, i) => { li.textContent = 'Item ' + (i + 1); });`,re:/querySelectorAll\(\s*['"]#daftar/,ok:b=>{const l=qa(b,'#daftar li');return l[0].textContent==='Item 1'&&l[1].textContent==='Item 2'}}}},
+{lesson:`Jumlah elemen bisa dihitung lewat properti <b>length</b>, lalu ditampilkan di console.`,code:`console.log(daftar.length)`,
+ quiz:Q('Properti apa yang menghitung jumlah elemen di NodeList?',['length','count','size','total']),v:{
+ easy:{task:`Cetak jumlah elemen <code>li</code> di halaman pakai <code>console.log</code> dan <code>document.querySelectorAll('li').length</code>.`,hint:`console.log(document.querySelectorAll('li').length);`,re:/querySelectorAll|getElementsByTagName/,ok:(b,l)=>l.includes('2')},
+ medium:{task:`Dalam satu <code>console.log</code>, cetak jumlah <code>.catatan</code> dan jumlah <code>li</code> sekaligus, dipisah koma.`,hint:`console.log(document.querySelectorAll('.catatan').length, document.querySelectorAll('li').length);`,re:/querySelectorAll\(\s*['"]\.catatan[\s\S]*querySelectorAll\(\s*['"]li|querySelectorAll\(\s*['"]li[\s\S]*querySelectorAll\(\s*['"]\.catatan/,ok:(b,l)=>l.trim()==='2 2'},
+ hard:{task:`Pakai <code>getElementsByClassName('catatan')</code> dan perulangan <code>for</code> biasa untuk mencetak teks tiap catatan.`,hint:`const c = document.getElementsByClassName('catatan'); for (let i = 0; i < c.length; i++) { console.log(c[i].textContent); }`,note:`HTMLCollection tidak punya forEach bawaan, jadi dipakai for biasa.`,re:/getElementsByClassName[\s\S]*for\s*\(/,ok:(b,l)=>l.includes('A')&&l.includes('B')}}}
+]},
+{name:'Level 2: Manipulasi DOM',ms:[
+{lesson:`Elemen baru dibuat dengan <b>createElement</b>, tapi baru tampil setelah ditempel pakai <b>appendChild</b>.`,code:`const li = document.createElement('li')`,
+ quiz:Q('Kenapa elemen dari createElement belum tampil?',['Belum ditempel ke DOM','Butuh reload','Butuh CSS dulu','Salah tag']),v:{
+ easy:{task:`Buat <code>li</code> baru berisi teks bebas, lalu tempel ke <code>ul#daftar</code> pakai appendChild.`,hint:`const li = document.createElement('li'); li.textContent='...'; document.getElementById('daftar').appendChild(li);`,re:/createElement[\s\S]*appendChild/,ok:b=>qa(b,'#daftar li').length>=3},
+ medium:{task:`Buat <code>li</code> baru dan tempel sebagai item <b>pertama</b> di <code>#daftar</code> pakai <code>prepend</code> atau <code>insertBefore</code>.`,hint:`document.getElementById('daftar').prepend(li);`,note:`appendChild menempel di akhir, prepend menempel di awal.`,re:/createElement[\s\S]*(prepend|insertBefore)/,ok:b=>{const l=qa(b,'#daftar li');return l.length>=3&&l[0].textContent!=='Satu'}},
+ hard:{task:`Buat array berisi 3 teks, lalu pakai perulangan untuk membuat dan menempel 3 <code>li</code> baru ke <code>#daftar</code>.`,hint:`['A','B','C'].forEach(t => { const li = document.createElement('li'); li.textContent = t; daftar.appendChild(li); });`,re:/createElement[\s\S]*(forEach|for\s*\()|(forEach|for\s*\()[\s\S]*createElement/,ok:b=>qa(b,'#daftar li').length>=5}}},
+{lesson:`Mengubah tampilan lewat <b>classList</b> lebih rapi daripada lewat style langsung.`,code:`el.classList.toggle('besar')`,
+ quiz:Q('Method classList yang menyalakan dan mematikan class bergantian?',['toggle','switch','flip','swap']),v:{
+ easy:{task:`Tambahkan class <code>besar</code> ke <code>#judul</code> pakai <code>classList.add</code>.`,hint:`document.getElementById('judul').classList.add('besar');`,re:/classList\.add/,ok:b=>q1(b,'#judul').classList.contains('besar')},
+ medium:{task:`Pakai <code>classList.toggle('besar')</code> sekali, dan <code>classList.add('merah')</code> di <code>#judul</code>.`,hint:`judul.classList.toggle('besar'); judul.classList.add('merah');`,re:/toggle/,ok:b=>{const c=q1(b,'#judul').classList;return c.contains('besar')&&c.contains('merah')}},
+ hard:{task:`Cek dulu pakai <code>contains('besar')</code>. Kalau belum ada, tambahkan class-nya. Lalu cetak <code>contains('besar')</code> ke console.`,hint:`if (!judul.classList.contains('besar')) { judul.classList.add('besar'); } console.log(judul.classList.contains('besar'));`,re:/contains[\s\S]*if|if[\s\S]*contains/,ok:(b,l)=>l.includes('true')&&q1(b,'#judul').classList.contains('besar')}}},
+{lesson:`Atribut dibaca dan diubah pakai <b>setAttribute</b> dan <b>getAttribute</b>.`,code:`img.setAttribute('alt', 'foto')`,
+ quiz:Q('Method untuk membaca nilai atribut?',['getAttribute','readAttr','fetchAttribute','attribute()']),v:{
+ easy:{task:`Beri atribut <code>title</code> berisi teks bebas pada <code>#tombol</code> pakai setAttribute.`,hint:`document.getElementById('tombol').setAttribute('title','...');`,re:/setAttribute/,ok:b=>!!q1(b,'#tombol').getAttribute('title')},
+ medium:{task:`Beri atribut <code>title</code> pada <code>#tombol</code>, lalu cetak nilainya pakai <code>getAttribute</code>.`,hint:`tombol.setAttribute('title','...'); console.log(tombol.getAttribute('title'));`,re:/setAttribute[\s\S]*getAttribute/,ok:(b,l)=>{const t=q1(b,'#tombol').getAttribute('title');return !!t&&l.trim()===t}},
+ hard:{task:`Set <code>title</code> di <code>#tombol</code>, cetak nilainya pakai getAttribute, lalu hapus atributnya pakai <code>removeAttribute</code>.`,hint:`setAttribute('title','...'), console.log(getAttribute('title')), lalu removeAttribute('title').`,re:/setAttribute[\s\S]*getAttribute[\s\S]*removeAttribute/,ok:(b,l)=>l.trim().length>0&&!q1(b,'#tombol').hasAttribute('title')}}},
+{lesson:`Menghapus elemen cukup dengan <b>remove()</b>. Beda dengan innerHTML, <b>textContent</b> menganggap semuanya teks biasa dan lebih aman.`,code:`el.remove()`,
+ quiz:Q('Mana yang lebih aman untuk teks dari pengguna?',['textContent','innerHTML','keduanya sama','outerHTML']),v:{
+ easy:{task:`Hapus paragraf <code>.catatan</code> pertama pakai <code>.remove()</code> sehingga tinggal satu.`,hint:`document.querySelector('.catatan').remove();`,note:`Kalau datanya dari pengguna, pilih textContent daripada innerHTML supaya terhindar dari XSS.`,re:/\.remove\(\)/,ok:b=>qa(b,'.catatan').length===1},
+ medium:{task:`Hapus <b>semua</b> <code>.catatan</code> pakai querySelectorAll + forEach + remove.`,hint:`document.querySelectorAll('.catatan').forEach(p => p.remove());`,re:/querySelectorAll[\s\S]*remove\(\)/,ok:b=>qa(b,'.catatan').length===0},
+ hard:{task:`Hapus <code>li</code> terakhir di <code>#daftar</code>, lalu isi <code>textContent</code> milik <code>#judul</code> dengan jumlah <code>li</code> yang tersisa (pakai length, hasilnya "1").`,hint:`Hapus dulu li terakhir, lalu judul.textContent = document.querySelectorAll('#daftar li').length;`,re:/remove\(\)[\s\S]*length/,ok:b=>qa(b,'#daftar li').length===1&&q1(b,'#judul').textContent==='1'}}}
+]},
+{name:'Level 3: Event dan Delegation',ms:[
+{lesson:`<b>addEventListener</b> membuat halaman bereaksi saat sesuatu terjadi, misalnya klik.`,code:`el.addEventListener('click', fn)`,
+ quiz:Q('Bentuk umum addEventListener?',['elemen.addEventListener(nama, fungsi)','addEventListener(elemen)','elemen.on = fungsi()','listen(elemen, nama)']),v:{
+ easy:{task:`Pasang listener klik di <code>#tombol</code> yang mengubah teks <code>#judul</code> jadi teks bebas.`,hint:`document.getElementById('tombol').addEventListener('click', function(){ ... });`,re:/addEventListener\(\s*['"]click/,go:b=>q1(b,'#tombol').click(),ok:b=>q1(b,'#judul').textContent!=='Halo'},
+ medium:{task:`Buat penghitung: variabel <code>hitung</code> naik 1 tiap <code>#tombol</code> diklik, lalu tampilkan angkanya di <code>#judul</code> (dites 3 klik).`,hint:`let hitung = 0; tombol.addEventListener('click', function(){ hitung++; judul.textContent = hitung; });`,note:`Variabel di luar fungsi listener tetap ingat nilainya di antara klik.`,re:/addEventListener\(\s*['"]click/,go:b=>{const t=q1(b,'#tombol');t.click();t.click();t.click()},ok:b=>q1(b,'#judul').textContent==='3'},
+ hard:{task:`Tiap klik <code>#tombol</code>, <code>classList.toggle('aktif')</code> pada <code>#judul</code> (dites 3 klik).`,hint:`tombol.addEventListener('click', () => judul.classList.toggle('aktif'));`,re:/addEventListener[\s\S]*toggle/,go:b=>{const t=q1(b,'#tombol');t.click();t.click();t.click()},ok:b=>q1(b,'#judul').classList.contains('aktif')}}},
+{lesson:`Fungsi listener menerima objek event. <b>e.target</b> adalah elemen yang kena, <b>e.currentTarget</b> tempat listener dipasang.`,code:`daftar.addEventListener('click', e => ...)`,
+ quiz:Q('e.target berisi...',['Elemen yang persis kena kejadian','Selalu elemen body','Nama event','Posisi mouse']),v:{
+ easy:{task:`Tiap klik <code>#tombol</code> harus menambah satu <code>li</code> baru ke <code>#daftar</code> (dites 2 kali klik).`,hint:`Di dalam listener: createElement('li'), isi teks, lalu appendChild ke #daftar.`,re:/addEventListener/,go:b=>{const t=q1(b,'#tombol');t.click();t.click()},ok:b=>qa(b,'#daftar li').length>=4},
+ medium:{task:`Pasang listener klik di <code>#daftar</code>, lalu cetak <code>e.target.tagName</code> ke console (dites klik pada li pertama).`,hint:`daftar.addEventListener('click', function(e){ console.log(e.target.tagName); });`,re:/\.target/,go:b=>q1(b,'#daftar li').click(),ok:(b,l)=>l.includes('LI')},
+ hard:{task:`Pasang listener klik di <code>#daftar</code>, lalu cetak <code>e.currentTarget.id</code> ke console (dites klik pada li pertama).`,hint:`daftar.addEventListener('click', e => console.log(e.currentTarget.id));`,note:`currentTarget selalu elemen tempat listener dipasang, walau yang diklik anaknya.`,re:/currentTarget/,go:b=>q1(b,'#daftar li').click(),ok:(b,l)=>l.includes('daftar')}}},
+{lesson:`<b>Event delegation</b>: pasang listener di induk, lalu cek <b>e.target</b>. Elemen anak yang dibuat belakangan tetap ke-listen.`,code:`if (e.target.tagName === 'LI') e.target.remove()`,
+ quiz:Q('Kenapa delegation berguna?',['Elemen baru otomatis ikut ke-listen','Kodenya jadi lebih panjang','Browser jadi lebih cepat','Tidak perlu DOM']),v:{
+ easy:{task:`Pasang listener klik di <code>#daftar</code>. Kalau <code>e.target.tagName === 'LI'</code>, hapus elemen itu (dites klik li pertama).`,hint:`daftar.addEventListener('click', function(e){ if(e.target.tagName==='LI') e.target.remove(); });`,re:/tagName/,go:b=>q1(b,'#daftar li').click(),ok:b=>qa(b,'#daftar li').length===1},
+ medium:{task:`Dengan delegation di <code>#daftar</code>, klik pada <code>li</code> harus <code>classList.toggle('selesai')</code> (dites klik li pertama).`,hint:`if (e.target.tagName === 'LI') e.target.classList.toggle('selesai');`,re:/target[\s\S]*toggle/,go:b=>q1(b,'#daftar li').click(),ok:b=>q1(b,'#daftar li').classList.contains('selesai')},
+ hard:{task:`Dua listener: klik <code>#tombol</code> menambah <code>li</code> baru, dan delegation di <code>#daftar</code> menghapus <code>li</code> yang diklik. Dites: tambah satu item, lalu klik item baru itu.`,hint:`Listener penghapus dipasang di #daftar sekali saja, bukan di tiap li baru.`,note:`Inilah kekuatan delegation: li baru yang dibuat belakangan tetap bisa dihapus.`,re:/addEventListener[\s\S]*addEventListener[\s\S]*target/,go:b=>{q1(b,'#tombol').click();const l=qa(b,'#daftar li');l[l.length-1].click()},ok:b=>qa(b,'#daftar li').length===2}}},
+{lesson:`Event <b>input</b> aktif tiap isi kolom berubah, dan nilainya dibaca lewat <b>e.target.value</b>.`,code:`isian.addEventListener('input', e => ...)`,
+ quiz:Q('Event yang aktif tiap ketikan?',['input','submit','load','change saja']),v:{
+ easy:{task:`Pasang listener <code>input</code> di <code>#isian</code> yang menyalin nilainya ke <code>textContent</code> milik <code>#judul</code>.`,hint:`isian.addEventListener('input', function(e){ judul.textContent = e.target.value; });`,re:/['"]input['"]/,go:b=>{const i=q1(b,'#isian');i.value='Zed';i.dispatchEvent(new Event('input',{bubbles:true}))},ok:b=>q1(b,'#judul').textContent==='Zed'},
+ medium:{task:`Sama seperti sebelumnya, tapi tampilkan nilainya dalam <b>huruf besar</b> pakai <code>toUpperCase()</code> (dites ketik "Zed").`,hint:`judul.textContent = e.target.value.toUpperCase();`,re:/['"]input['"][\s\S]*toUpperCase/,go:b=>{const i=q1(b,'#isian');i.value='Zed';i.dispatchEvent(new Event('input',{bubbles:true}))},ok:b=>q1(b,'#judul').textContent==='ZED'},
+ hard:{task:`Tampilkan panjang teks di <code>#judul</code> dengan format persis <code>Panjang: 3</code> (dites ketik "Zed").`,hint:`judul.textContent = 'Panjang: ' + e.target.value.length;`,re:/['"]input['"][\s\S]*length/,go:b=>{const i=q1(b,'#isian');i.value='Zed';i.dispatchEvent(new Event('input',{bubbles:true}))},ok:b=>q1(b,'#judul').textContent==='Panjang: 3'}}}
+]}];
+const DIFF=[{id:'easy',name:'Easy',enemy:false,time:0},{id:'medium',name:'Medium',enemy:false,time:150},{id:'hard',name:'Hard',enemy:true,time:90}];
+const LV=[];CATS.forEach(c=>DIFF.forEach(d=>LV.push({name:c.name+' - '+d.name,enemy:d.enemy,time:d.time,ms:c.ms.map(m=>({lesson:m.lesson,code:m.code,quiz:m.quiz,...m.v[d.id]}))})));
+function runDom(code,m){
+  const box=document.createElement('div');box.innerHTML=HTML0;const logs=[];
+  const doc={querySelector:s=>box.querySelector(s),querySelectorAll:s=>box.querySelectorAll(s),getElementById:i=>box.querySelector('#'+i),
+    getElementsByClassName:c=>box.getElementsByClassName(c),getElementsByTagName:t=>box.getElementsByTagName(t),
+    createElement:t=>document.createElement(t),addEventListener(){},body:box};
+  const con={log:(...a)=>logs.push(a.map(String).join(' '))};
+  let err=null;
+  try{new Function('document','console',code)(doc,con);if(m.go)m.go(box)}catch(e){err=e.message}
+  if(err)logs.push('Error: '+err);
+  let ok=false;try{ok=!err&&m.re.test(code)&&m.ok(box,logs.join('\n'))}catch(e){}
+  return{logs,ok,box}
+}
+let lvIdx=0,L=LV[0],st,open=false,eT=null,cT=null;const cells={};
+const isWall=(r,c)=>r<=0||r>=ROWS-1||c<=0||c>=COLS-1||PILLARS.some(p=>p[0]===r&&p[1]===c);
+const mAt=(r,c)=>POS.findIndex(p=>p[0]===r&&p[1]===c);
+const def=()=>({player:{r:4,c:1},dir:'right',eaten:{},done:{},points:0,enemy:L.enemy?{r:4,c:11}:null,timeLeft:L.time});
+function load(){try{const s=JSON.parse(localStorage.getItem('domquest2_'+lvIdx));if(s&&s.player)return s}catch(e){}return def()}
+function save(){try{localStorage.setItem('domquest2_'+lvIdx,JSON.stringify(st))}catch(e){}}
+const $=id=>document.getElementById(id);
+let ac=null;function beep(f,d,t){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.setValueAtTime(.08,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d/1000);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d/1000)}catch(e){}}
+function bump(el){el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump')}
+const done=()=>Object.keys(st.done).length;
+function upScore(){const e=$('score');e.textContent=done()+'/'+POS.length;bump(e)}
+function upPts(){const e=$('points');e.textContent=st.points+' poin';bump(e)}
+function upTimer(){const t=$('timer');if(!L.time){t.style.display='none';return}t.style.display='inline-block';const s=Math.max(0,st.timeLeft);t.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function flash(t){const f=$('flash');f.textContent=t;f.classList.add('show');setTimeout(()=>f.classList.remove('show'),1400)}
+function menu(){const l=$('levelList');l.innerHTML='';const cc=['var(--mint)','var(--candy2)','var(--coral)'];
+  CATS.forEach((c,i)=>{const b=document.createElement('button');b.className='levelBtn';b.innerHTML='<span class="badge3d" style="--bc:'+cc[i]+'">'+(i+1)+'</span><span>'+c.name+'</span>';b.onclick=()=>{beep(740,55);diffMenu(i)};l.appendChild(b)})}
+function diffMenu(ci){const l=$('levelList');l.innerHTML='';const m=[['E','var(--mint)'],['M','var(--candy2)'],['H','var(--coral)']];
+  DIFF.forEach((d,j)=>{const b=document.createElement('button');b.className='levelBtn';b.innerHTML='<span class="badge3d" style="--bc:'+m[j][1]+'">'+m[j][0]+'</span><span>'+d.name+(d.enemy?' (waktu + penjaga)':d.time?' (waktu)':'')+'</span>';b.onclick=()=>{beep(740,55);start(ci*3+j)};l.appendChild(b)});
+  const k=document.createElement('button');k.className='levelBtn';k.style.cssText='color:var(--muted);border-color:var(--wall2);box-shadow:0 4px 0 var(--wall2)';k.textContent='Kembali';k.onclick=()=>{beep(740,55);menu()};l.appendChild(k)}
+function start(i){$('startScreen').style.display='none';$('game').style.display='block';$('hud').style.display='flex';sw(i)}
+function back(){clearInterval(eT);clearInterval(cT);open=false;$('overlay').classList.add('hidden');$('game').style.display='none';$('hud').style.display='none';$('startScreen').style.display='flex';menu()}
+function sw(i){clearInterval(eT);clearInterval(cT);lvIdx=i;L=LV[i];st=load();open=false;$('overlay').classList.add('hidden');build();upScore();upTimer();upPts();
+  if(L.enemy)eT=setInterval(tickE,750);if(L.time)cT=setInterval(tickT,1000)}
+function build(){const mz=$('maze');mz.innerHTML='';
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const d=document.createElement('div'),k=r+','+c;
+    if(isWall(r,c))d.className='cell wall';else{const mi=mAt(r,c);
+      if(mi>=0){d.className='cell mission'+(st.done[mi]?' cleared':'');const mk=document.createElement('div');mk.className='marker';d.appendChild(mk)}
+      else d.className='cell path'+((st.eaten[k]||(r===4&&c===1))?'':' dot')}
+    mz.appendChild(d);cells[k]=d}
+  const p=document.createElement('div');p.className='player';p.id='player';p.innerHTML='<div class="pacBody"></div>';mz.appendChild(p);
+  if(L.enemy){const e=document.createElement('div');e.className='enemy';e.id='enemy';e.innerHTML='<div class="ghostBody"><span class="eye l"></span><span class="eye r"></span></div>';mz.appendChild(e)}
+  upP();upE()}
+function pos(el,r,c){el.style.left=(c+.5)/COLS*100+'%';el.style.top=(r+.5)/ROWS*100+'%'}
+function upP(){const p=$('player');pos(p,st.player.r,st.player.c);p.style.transform='translate(-50%,-50%) rotate('+({right:0,left:180,up:-90,down:90}[st.dir]||0)+'deg)'}
+function upE(){if(!L.enemy)return;const e=$('enemy');if(e&&st.enemy){pos(e,st.enemy.r,st.enemy.c);e.style.transform='translate(-50%,-50%)'}}
+function move(dr,dc){if(open)return;const nr=st.player.r+dr,nc=st.player.c+dc;if(isWall(nr,nc))return;beep(300,55,'square');
+  st.dir=dc===1?'right':dc===-1?'left':dr===-1?'up':'down';st.player={r:nr,c:nc};const k=nr+','+nc;
+  if(!st.eaten[k]&&mAt(nr,nc)<0){st.eaten[k]=true;st.points+=10;upPts();cells[k].classList.remove('dot')}
+  upP();save();const mi=mAt(nr,nc);
+  if(mi>=0)setTimeout(()=>enc(mi),120);else if(L.enemy&&st.enemy&&st.enemy.r===nr&&st.enemy.c===nc)caught()}
+function bfs(f,t){if(f.r===t.r&&f.c===t.c)return f;const v=new Set([f.r+','+f.c]),q=[{r:f.r,c:f.c,first:null}];
+  while(q.length){const cur=q.shift();for(const d of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=cur.r+d[0],nc=cur.c+d[1];if(isWall(nr,nc))continue;const k=nr+','+nc;if(v.has(k))continue;v.add(k);
+    const first=cur.first||{r:nr,c:nc};if(nr===t.r&&nc===t.c)return first;q.push({r:nr,c:nc,first})}}return f}
+function tickE(){if(open||!st.enemy)return;const n=bfs(st.enemy,st.player);st.enemy={r:n.r,c:n.c};upE();save();if(n.r===st.player.r&&n.c===st.player.c)caught()}
+function tickT(){if(open)return;st.timeLeft--;if(st.timeLeft<=0){st.player={r:4,c:1};st.timeLeft=L.time;upP();flash('Waktu habis! Coba lagi dari titik awal.')}upTimer();save()}
+function caught(){st.player={r:4,c:1};st.timeLeft=Math.max(15,st.timeLeft-15);upP();upTimer();save();flash('Ketangkep penjaga! Balik ke titik awal ya.')}
+function enc(mi){open=true;const m=L.ms[mi],skip=!!st.done[mi];
+  $('panel').innerHTML=`<button class="closeX" id="closeX">&times;</button><div class="lesson">${m.lesson}</div><pre></pre>
+  <div id="quizBox" style="${skip?'display:none':''}"><div class="task">Kuis: ${m.quiz.q}</div><div class="quizOpts" id="qo"></div><div class="quizMsg" id="qm"></div></div>
+  <div id="taskBox" style="${skip?'':'display:none'}">${m.note?`<div class="noteBox"><b>Materi baru:</b> ${m.note}</div>`:''}<div class="task">${m.task}</div>
+  <button class="hintBtn" id="hb" type="button">Lihat hint</button><div class="hintBox hidden" id="hx"></div>
+  <textarea id="code" spellcheck="false" placeholder="tulis kode JavaScript-mu di sini"></textarea><pre class="outputBox hidden" id="out"></pre>
+  <div class="row"><button class="run" id="rb">Coba</button><div class="status" id="status">${skip?'sudah selesai':''}</div></div></div>`;
+  $('panel').querySelector('pre').textContent=m.code;$('hx').textContent=m.hint;
+  $('overlay').classList.remove('hidden');
+  let fresh=false;const fin=()=>{close();if(fresh&&done()===POS.length)finale()};$('closeX').onclick=()=>{beep(740,55);fin()};
+  $('hb').onclick=()=>{const o=$('hx').classList.toggle('hidden');$('hb').textContent=o?'Lihat hint':'Tutup hint'};
+  const qo=$('qo'),ord=m.quiz.options.map((_,i)=>i);for(let i=ord.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ord[i],ord[j]]=[ord[j],ord[i]]}
+  ord.forEach(oi=>{const b=document.createElement('button');b.textContent=m.quiz.options[oi];b.onclick=()=>{const q=$('qm');
+    if(oi===m.quiz.answer){b.classList.add('correct');beep(880,150);q.textContent='Benar! Lanjut ke misi kodenya.';q.className='quizMsg ok';[...qo.children].forEach(c=>c.disabled=true);
+      setTimeout(()=>{$('quizBox').style.display='none';$('taskBox').style.display='block'},500)}
+    else{b.classList.add('wrong','shake');beep(180,150,'square');q.textContent='Belum tepat, coba lagi.';q.className='quizMsg bad'}};qo.appendChild(b)});
+  $('rb').onclick=()=>{const val=$('code').value,out=$('out'),s=$('status'),r=runDom(val,m);
+    out.classList.remove('hidden');const dom=[...r.box.children].map(e=>e.outerHTML).join('\n');out.textContent=(r.logs.length?'Console:\n'+r.logs.join('\n')+'\n\n':'')+'Hasil DOM:\n'+dom;s.textContent='';s.className='status';
+    if(r.ok){s.textContent='yeay, benar!';s.className='status ok';beep(880,180);const isNew=!st.done[mi];st.done[mi]=true;if(isNew){st.points+=50;upPts()}save();upScore();cells[POS[mi][0]+','+POS[mi][1]].classList.add('cleared');
+      if(isNew)fresh=true;$('rb').textContent='Lanjut';$('rb').onclick=fin}
+    else{s.textContent='belum tepat, coba lagi';s.className='status bad';beep(180,150,'square');s.classList.add('shake');setTimeout(()=>s.classList.remove('shake'),400)}}}
+function close(){open=false;$('overlay').classList.add('hidden')}
+function finale(){open=true;$('panel').innerHTML=`<div class="finale"><div class="big">Semua misi selesai!</div><div class="sc">${POS.length} / ${POS.length} misi &middot; ${st.points} poin</div><button id="rs">Main lagi</button></div>`;
+  $('overlay').classList.remove('hidden');const cs=['#FF8FAE','#FFD166','#4FC9A5','#8A7CFF','#FF7A85'];
+  for(let i=0;i<28;i++){const c=document.createElement('div');c.className='confetti';c.style.left=Math.random()*100+'vw';c.style.background=cs[i%5];c.style.animationDuration=(1.6+Math.random()*1.2)+'s';document.body.appendChild(c);setTimeout(()=>c.remove(),3000)}
+  beep(660,120);setTimeout(()=>beep(880,120),140);setTimeout(()=>beep(1100,220),280);
+  $('rs').onclick=()=>{st=def();save();build();upScore();upTimer();upPts();close()}}
+addEventListener('keydown',e=>{const t=document.activeElement&&document.activeElement.tagName;if(t==='TEXTAREA'||t==='INPUT')return;
+  const M={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1],w:[-1,0],s:[1,0],a:[0,-1],d:[0,1]};if(M[e.key]){e.preventDefault();move(...M[e.key])}});
+document.querySelectorAll('.dpad button').forEach(b=>b.addEventListener('click',()=>move(+b.dataset.dr,+b.dataset.dc)));
+$('menuBtn').addEventListener('click',()=>{beep(740,55);back()});
+menu();
+</script></body></html>
