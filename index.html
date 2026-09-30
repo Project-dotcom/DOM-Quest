@@ -71,11 +71,12 @@ button.run:disabled{opacity:.55}
 .finale .big{font-family:var(--fc);font-size:16px;color:var(--candy);margin-bottom:14px;text-align:center}
 .finale .sc{font-family:var(--fc);font-size:11px;text-align:center;margin-bottom:22px;color:var(--mint)}
 .finale button{display:block;margin:0 auto;background:linear-gradient(180deg,var(--mint),#1e9e77);color:#06251a;border:1px solid #7dffd4;font-family:var(--fc);font-size:11px;padding:12px 22px;border-radius:8px;cursor:pointer}
+.pacHero{cursor:pointer}.levelList{perspective:600px;padding:6px 4px 4px}.levelBtn,.dpad button,button.run{transform-style:preserve-3d;will-change:transform}.dpad{perspective:500px}.levelBtn.back{color:var(--muted)}
 </style></head><body>
 <div class="wrap">
 <header><div class="logo"></div>
-<div class="hud" id="hud" style="display:none"><button class="menuBtn" id="menuBtn">Ganti Level</button><div class="timer" id="timer"></div><div class="score" id="score"></div><div class="score" id="points"></div></div></header>
-<div class="startScreen" id="startScreen"><div class="startCard"><div class="pacHero"><div class="pacBody"></div></div><div class="levelList" id="levelList"></div></div></div>
+<div class="hud" id="hud" style="display:none"><button class="menuBtn" id="menuBtn">Ganti Level</button><div class="timer" id="timer"></div><div class="score" id="score"></div><div class="score" id="points"></div></div><button class="menuBtn" id="musicBtn" title="Musik"></button></header>
+<div class="startScreen" id="startScreen"><div class="startCard"><div class="pacHero" id="pacHero" title="Coba klik aku!"><div class="pacBody"></div></div><div class="levelList" id="levelList"></div></div></div>
 <div id="game" style="display:none"><div class="maze" id="maze"></div>
 <div class="dpad"><button class="up" data-dr="-1" data-dc="0">&#9650;</button><button class="left" data-dr="0" data-dc="-1">&#9664;</button><button class="right" data-dr="0" data-dc="1">&#9654;</button><button class="down" data-dr="1" data-dc="0">&#9660;</button></div></div>
 </div>
@@ -177,6 +178,25 @@ function load(){try{const s=JSON.parse(localStorage.getItem('domquest2_'+lvIdx))
 function save(){try{localStorage.setItem('domquest2_'+lvIdx,JSON.stringify(st))}catch(e){}}
 const $=id=>document.getElementById(id);
 let ac=null;function beep(f,d,t){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.setValueAtTime(.08,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d/1000);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d/1000)}catch(e){}}
+let bgOn=true;try{const pf=localStorage.getItem('domquest_music');if(pf!==null)bgOn=(pf==='1')}catch(e){}
+let bgT=null,bgS=0;
+const BGM=[523.25,0,659.25,0,783.99,659.25,523.25,0,587.33,0,698.46,0,880,698.46,587.33,0];
+const BGB=[130.81,130.81,164.81,164.81,196,196,164.81,164.81,146.83,146.83,174.61,174.61,196,196,174.61,174.61];
+function bgNote(f,d,t,v){if(!f)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,ac.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d/1000);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d/1000)}catch(e){}}
+function bgPlay(){if(!ac||ac.state!=='running'){try{ac&&ac.resume()}catch(e){}return}bgNote(BGM[bgS%16],210,'square',.03);bgNote(BGB[bgS%16],230,'triangle',.045);bgS++}
+function startBg(){if(bgT)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume()}catch(e){}bgT=setInterval(bgPlay,230)}
+function stopBg(){clearInterval(bgT);bgT=null}
+function tryBg(){if(bgOn)startBg()}
+const ICON_ON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:5px"><path d="M4 9v6h4l5 5V4L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M19 6a9 9 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".6"/></svg>';
+const ICON_OFF='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:5px"><path d="M4 9v6h4l5 5V4L8 9H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+function upMusic(){$('musicBtn').innerHTML=(bgOn?ICON_ON:ICON_OFF)+'Musik'}
+function toggleMusic(){bgOn=!bgOn;try{localStorage.setItem('domquest_music',bgOn?'1':'0')}catch(e){}upMusic();if(bgOn)tryBg();else stopBg()}
+let lastStep=0;function stepSound(){const n=Date.now();if(n-lastStep<60)return;lastStep=n;beep(300+Math.random()*40,55,'square')}
+function tilt3D(el){el.style.transition='transform .12s ease';
+  el.addEventListener('pointermove',e=>{const r=el.getBoundingClientRect(),px=(e.clientX-r.left)/r.width-.5,py=(e.clientY-r.top)/r.height-.5;el.style.transform='perspective(500px) rotateX('+(-py*16).toFixed(1)+'deg) rotateY('+(px*16).toFixed(1)+'deg) translateZ(6px)'});
+  el.addEventListener('pointerleave',()=>{el.style.transform=''});
+  el.addEventListener('pointerdown',()=>{el.style.transform='perspective(500px) scale(.93) translateZ(-8px)'});
+  el.addEventListener('pointerup',()=>{el.style.transform=''})}
 function bump(el){el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump')}
 const done=()=>Object.keys(st.done).length;
 function upScore(){const e=$('score');e.textContent=done()+'/'+POS.length;bump(e)}
@@ -184,11 +204,11 @@ function upPts(){const e=$('points');e.textContent=st.points+' poin';bump(e)}
 function upTimer(){const t=$('timer');if(!L.time){t.style.display='none';return}t.style.display='inline-block';const s=Math.max(0,st.timeLeft);t.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 function flash(t){const f=$('flash');f.textContent=t;f.classList.add('show');setTimeout(()=>f.classList.remove('show'),1400)}
 function menu(){const l=$('levelList');l.innerHTML='';const cc=['var(--mint)','var(--candy2)','var(--coral)'];
-  CATS.forEach((c,i)=>{const b=document.createElement('button');b.className='levelBtn';b.innerHTML='<span class="badge3d" style="--bc:'+cc[i]+'">'+(i+1)+'</span><span>'+c.name+'</span>';b.onclick=()=>{beep(740,55);diffMenu(i)};l.appendChild(b)})}
+  CATS.forEach((c,i)=>{const b=document.createElement('button');b.className='levelBtn';b.innerHTML='<span class="badge3d" style="--bc:'+cc[i]+'">'+(i+1)+'</span><span>'+c.name+'</span>';b.onclick=()=>{beep(740,55);diffMenu(i)};l.appendChild(b);tilt3D(b)})}
 function diffMenu(ci){const l=$('levelList');l.innerHTML='';const m=[['E','var(--mint)'],['M','var(--candy2)'],['H','var(--coral)']];
-  DIFF.forEach((d,j)=>{const b=document.createElement('button');b.className='levelBtn';b.innerHTML='<span class="badge3d" style="--bc:'+m[j][1]+'">'+m[j][0]+'</span><span>'+d.name+(d.enemy?' (waktu + penjaga)':d.time?' (waktu)':'')+'</span>';b.onclick=()=>{beep(740,55);start(ci*3+j)};l.appendChild(b)});
-  const k=document.createElement('button');k.className='levelBtn';k.style.cssText='color:var(--muted);border-color:var(--wall2);box-shadow:0 4px 0 var(--wall2)';k.textContent='Kembali';k.onclick=()=>{beep(740,55);menu()};l.appendChild(k)}
-function start(i){$('startScreen').style.display='none';$('game').style.display='block';$('hud').style.display='flex';sw(i)}
+  DIFF.forEach((d,j)=>{const b=document.createElement('button');b.className='levelBtn';b.innerHTML='<span class="badge3d" style="--bc:'+m[j][1]+'">'+m[j][0]+'</span><span>'+d.name+(d.enemy?' (waktu + penjaga)':d.time?' (waktu)':'')+'</span>';b.onclick=()=>{beep(740,55);start(ci*3+j)};l.appendChild(b);tilt3D(b)});
+  const k=document.createElement('button');k.className='levelBtn';k.style.cssText='color:var(--muted);border-color:var(--wall2);box-shadow:0 4px 0 var(--wall2)';k.textContent='Kembali';k.onclick=()=>{beep(740,55);menu()};l.appendChild(k);tilt3D(k)}
+function start(i){tryBg();$('startScreen').style.display='none';$('game').style.display='block';$('hud').style.display='flex';sw(i)}
 function back(){clearInterval(eT);clearInterval(cT);open=false;$('overlay').classList.add('hidden');$('game').style.display='none';$('hud').style.display='none';$('startScreen').style.display='flex';menu()}
 function sw(i){clearInterval(eT);clearInterval(cT);lvIdx=i;L=LV[i];st=load();open=false;$('overlay').classList.add('hidden');build();upScore();upTimer();upPts();
   if(L.enemy)eT=setInterval(tickE,750);if(L.time)cT=setInterval(tickT,1000)}
@@ -204,7 +224,7 @@ function build(){const mz=$('maze');mz.innerHTML='';
 function pos(el,r,c){el.style.left=(c+.5)/COLS*100+'%';el.style.top=(r+.5)/ROWS*100+'%'}
 function upP(){const p=$('player');pos(p,st.player.r,st.player.c);p.style.transform='translate(-50%,-50%) rotate('+({right:0,left:180,up:-90,down:90}[st.dir]||0)+'deg)'}
 function upE(){if(!L.enemy)return;const e=$('enemy');if(e&&st.enemy){pos(e,st.enemy.r,st.enemy.c);e.style.transform='translate(-50%,-50%)'}}
-function move(dr,dc){if(open)return;const nr=st.player.r+dr,nc=st.player.c+dc;if(isWall(nr,nc))return;beep(300,55,'square');
+function move(dr,dc){if(open)return;const nr=st.player.r+dr,nc=st.player.c+dc;if(isWall(nr,nc))return;stepSound();
   st.dir=dc===1?'right':dc===-1?'left':dr===-1?'up':'down';st.player={r:nr,c:nc};const k=nr+','+nc;
   if(!st.eaten[k]&&mAt(nr,nc)<0){st.eaten[k]=true;st.points+=10;upPts();cells[k].classList.remove('dot')}
   upP();save();const mi=mAt(nr,nc);
@@ -224,7 +244,7 @@ function enc(mi){open=true;const m=L.ms[mi],skip=!!st.done[mi];
   <div class="row"><button class="run" id="rb">Coba</button><div class="status" id="status">${skip?'sudah selesai':''}</div></div></div>`;
   $('panel').querySelector('pre').textContent=m.code;$('hx').textContent=m.hint;
   $('overlay').classList.remove('hidden');
-  let fresh=false;const fin=()=>{close();if(fresh&&done()===POS.length)finale()};$('closeX').onclick=()=>{beep(740,55);fin()};
+  let fresh=false;const fin=()=>{close();if(fresh&&done()===POS.length)finale()};tilt3D($('rb'));$('closeX').onclick=()=>{beep(740,55);fin()};
   $('hb').onclick=()=>{const o=$('hx').classList.toggle('hidden');$('hb').textContent=o?'Lihat hint':'Tutup hint'};
   const qo=$('qo'),ord=m.quiz.options.map((_,i)=>i);for(let i=ord.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ord[i],ord[j]]=[ord[j],ord[i]]}
   ord.forEach(oi=>{const b=document.createElement('button');b.textContent=m.quiz.options[oi];b.onclick=()=>{const q=$('qm');
@@ -232,10 +252,12 @@ function enc(mi){open=true;const m=L.ms[mi],skip=!!st.done[mi];
       setTimeout(()=>{$('quizBox').style.display='none';$('taskBox').style.display='block'},500)}
     else{b.classList.add('wrong','shake');beep(180,150,'square');q.textContent='Belum tepat, coba lagi.';q.className='quizMsg bad'}};qo.appendChild(b)});
   $('rb').onclick=()=>{const val=$('code').value,out=$('out'),s=$('status'),r=runDom(val,m);
-    out.classList.remove('hidden');const dom=[...r.box.children].map(e=>e.outerHTML).join('\n');out.textContent=(r.logs.length?'Console:\n'+r.logs.join('\n')+'\n\n':'')+'Hasil DOM:\n'+dom;s.textContent='';s.className='status';
+    out.classList.remove('hidden');const dom=[...r.box.children].map(e=>e.outerHTML).join('\n');const lines=((r.logs.length?'Console:\n'+r.logs.join('\n')+'\n\n':'')+'Hasil DOM:\n'+dom).split('\n');out.textContent='';s.textContent='';s.className='status';$('rb').disabled=true;let ix=0;
+    const step=()=>{if(ix<lines.length){out.textContent+=(ix?'\n':'')+lines[ix];out.scrollTop=out.scrollHeight;ix++;beep(520,40);setTimeout(step,ix>12?60:260)}else{$('rb').disabled=false;judge()}};
+    setTimeout(step,150);const judge=()=>{
     if(r.ok){s.textContent='yeay, benar!';s.className='status ok';beep(880,180);const isNew=!st.done[mi];st.done[mi]=true;if(isNew){st.points+=50;upPts()}save();upScore();cells[POS[mi][0]+','+POS[mi][1]].classList.add('cleared');
       if(isNew)fresh=true;$('rb').textContent='Lanjut';$('rb').onclick=fin}
-    else{s.textContent='belum tepat, coba lagi';s.className='status bad';beep(180,150,'square');s.classList.add('shake');setTimeout(()=>s.classList.remove('shake'),400)}}}
+    else{s.textContent='belum tepat, coba lagi';s.className='status bad';beep(180,150,'square');s.classList.add('shake');setTimeout(()=>s.classList.remove('shake'),400)}}}}
 function close(){open=false;$('overlay').classList.add('hidden')}
 function finale(){open=true;$('panel').innerHTML=`<div class="finale"><div class="big">Semua misi selesai!</div><div class="sc">${POS.length} / ${POS.length} misi &middot; ${st.points} poin</div><button id="rs">Main lagi</button></div>`;
   $('overlay').classList.remove('hidden');const cs=['#FF8FAE','#FFD166','#4FC9A5','#8A7CFF','#FF7A85'];
@@ -246,5 +268,12 @@ addEventListener('keydown',e=>{const t=document.activeElement&&document.activeEl
   const M={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1],w:[-1,0],s:[1,0],a:[0,-1],d:[0,1]};if(M[e.key]){e.preventDefault();move(...M[e.key])}});
 document.querySelectorAll('.dpad button').forEach(b=>b.addEventListener('click',()=>move(+b.dataset.dr,+b.dataset.dc)));
 $('menuBtn').addEventListener('click',()=>{beep(740,55);back()});
+const hero=$('pacHero');tilt3D(hero);hero.addEventListener('click',()=>{tryBg();beep(880,90);setTimeout(()=>beep(1046,120),90)});
+$('musicBtn').addEventListener('click',toggleMusic);upMusic();
+document.querySelectorAll('.dpad button').forEach(tilt3D);
+function unlockAudio(){if(bgOn)startBg();try{ac&&ac.resume()}catch(e){}}
+['pointerdown','touchstart','keydown','click'].forEach(ev=>document.addEventListener(ev,unlockAudio,{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)unlockAudio()});
+if(bgOn)startBg();
 menu();
 </script></body></html>
